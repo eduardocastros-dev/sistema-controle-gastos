@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Gastos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f5f5f0;
+      --surface:  #ffffff;
+      --border:   #e2e0d8;
+      --text:     #1a1a18;
+      --muted:    #76756e;
+      --green:    #1D9E75;
+      --green-bg: #E1F5EE;
+      --red:      #D85A30;
+      --red-bg:   #FAECE7;
+      --radius:   10px;
+      --shadow:   0 1px 4px rgba(0,0,0,0.07);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    header span { font-size: 0.85rem; color: var(--muted); }
+
+    /* ── Layout ── */
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    /* ── Cards de resumo ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card .label { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    .card .value { font-size: 1.5rem; font-weight: 600; }
+    .card.verde .value { color: var(--green); }
+    .card.vermelho .value { color: var(--red); }
+
+    /* ── Grid principal ── */
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 1rem; }
+
+    /* ── Painéis ── */
+    .painel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .painel-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .painel-body { padding: 1.25rem; }
+
+    /* ── Formulário ── */
+    .tipo-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 1rem;
+    }
+    .tipo-btn {
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .tipo-btn.ativo.receita { background: var(--green-bg); color: var(--green); border-color: var(--green); font-weight: 600; }
+    .tipo-btn.ativo.despesa { background: var(--red-bg); color: var(--red); border-color: var(--red); font-weight: 600; }
+
+    .campo { margin-bottom: 0.85rem; }
+    .campo label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+    .campo input,
+    .campo select,
+    .campo textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.15s;
+    }
+    .campo input:focus,
+    .campo select:focus,
+    .campo textarea:focus {
+      outline: none;
+      border-color: #999;
+    }
+    .campo textarea { resize: vertical; min-height: 60px; }
+
+    .btn-salvar {
+      width: 100%;
+      padding: 10px;
+      background: var(--text);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-salvar:hover { opacity: 0.85; }
+
+    /* ── Abas do extrato ── */
+    .abas {
+      display: flex;
+      gap: 4px;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .aba {
+      padding: 5px 12px;
+      border: 1px solid transparent;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+    }
+    .aba.ativo { background: var(--bg); border-color: var(--border); color: var(--text); font-weight: 600; }
+
+    /* ── Lista de transações ── */
+    .lista { display: flex; flex-direction: column; gap: 6px; }
+    .tx {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .tx-esq { display: flex; align-items: center; gap: 10px; }
+    .tx-icone {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .tx-icone.r { background: var(--green-bg); }
+    .tx-icone.d { background: var(--red-bg); }
+    .tx-desc { font-size: 0.875rem; font-weight: 500; }
+    .tx-cat  { font-size: 0.75rem; color: var(--muted); }
+    .tx-dir  { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .tx-val  { font-size: 0.875rem; font-weight: 600; }
+    .tx-val.r { color: var(--green); }
+    .tx-val.d { color: var(--red); }
+    .tx-data { font-size: 0.72rem; color: var(--muted); }
+    .btn-del {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.75rem; color: var(--muted); padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .btn-del:hover { background: var(--red-bg); color: var(--red); }
+    .vazio { text-align: center; padding: 2rem; font-size: 0.875rem; color: var(--muted); }
+
+    /* ── Gráfico ── */
+    .chart-area { position: relative; height: 220px; }
+    .legenda { display: flex; gap: 1rem; font-size: 0.78rem; color: var(--muted); padding: 1rem 1.25rem 0; }
+    .legenda span { display: flex; align-items: center; gap: 5px; }
+    .leg { width: 10px; height: 10px; border-radius: 2px; }
+
+    @media (max-width: 680px) {
+      .cards { grid-template-columns: 1fr; }
+      .grid  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Controle de Gastos</h1>
+  <span id="mes-header"></span>
+</header>
+
+<main>
+  <!-- Cards de resumo -->
+  <div class="cards">
+    <div class="card">
+      <div class="label">Saldo atual</div>
+      <div class="value" id="c-saldo">R$ 0,00</div>
+    </div>
+    <div class="card verde">
+      <div class="label">Total de receitas</div>
+      <div class="value" id="c-rec">R$ 0,00</div>
+    </div>
+    <div class="card vermelho">
+      <div class="label">Total de despesas</div>
+      <div class="value" id="c-desp">R$ 0,00</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Formulário -->
+    <div class="painel">
+      <div class="painel-header">Novo lançamento</div>
+      <div class="painel-body">
+        <div class="tipo-toggle">
+          <button class="tipo-btn ativo receita" id="btn-rec" onclick="setTipo('receita')">↑ Receita</button>
+          <button class="tipo-btn despesa"         id="btn-desp" onclick="setTipo('despesa')">↓ Despesa</button>
+        </div>
+
+        <div class="campo">
+          <label>Descrição *</label>
+          <input id="f-desc" type="text" placeholder="Ex: Salário de maio" />
+        </div>
+        <div class="campo">
+          <label>Valor (R$) *</label>
+          <input id="f-valor" type="number" min="0.01" step="0.01" placeholder="0,00" />
+        </div>
+        <div class="campo">
+          <label>Categoria *</label>
+          <select id="f-cat"></select>
+        </div>
+        <div class="campo">
+          <label>Data *</label>
+          <input id="f-data" type="date" />
+        </div>
+        <div class="campo">
+          <label>Observação</label>
+          <textarea id="f-obs" placeholder="Opcional..."></textarea>
+        </div>
+        <button class="btn-salvar" onclick="salvarTransacao()">Adicionar lançamento</button>
+      </div>
+    </div>
+
+    <!-- Extrato + Gráfico -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- Gráfico -->
+      <div class="painel">
+        <div class="painel-header">Resumo mensal</div>
+        <div class="legenda">
+          <span><span class="leg" style="background:#1D9E75"></span>Receitas</span>
+          <span><span class="leg" style="background:#D85A30"></span>Despesas</span>
+        </div>
+        <div class="painel-body">
+          <div class="chart-area">
+            <canvas id="grafico" role="img" aria-label="Gráfico de receitas e despesas mensais">Dados mensais de receitas e despesas.</canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extrato -->
+      <div class="painel">
+        <div class="abas">
+          <button class="aba ativo" onclick="filtrarLista('todos', this)">Todos</button>
+          <button class="aba" onclick="filtrarLista('receita', this)">Receitas</button>
+          <button class="aba" onclick="filtrarLista('despesa', this)">Despesas</button>
+        </div>
+        <div class="painel-body">
+          <div class="lista" id="lista-tx"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+const API = '/api';
+let tipoAtual = 'receita';
+let filtroAtual = 'todos';
+let todasTx = [];
+let chart = null;
+
+const fmt = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// ── Inicialização ──────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const hoje = new Date();
+  document.getElementById('mes-header').textContent = meses[hoje.getMonth()] + ' de ' + hoje.getFullYear();
+  document.getElementById('f-data').value = hoje.toISOString().split('T')[0];
+  await carregarCategorias();
+  await atualizarTudo();
+});
+
+// ── Tipo receita/despesa ────────────────────────────────────
+function setTipo(tipo) {
+  tipoAtual = tipo;
+  document.getElementById('btn-rec').className  = 'tipo-btn' + (tipo === 'receita' ? ' ativo receita' : '');
+  document.getElementById('btn-desp').className = 'tipo-btn' + (tipo === 'despesa' ? ' ativo despesa' : '');
+  carregarCategorias();
+}
+
+// ── Carregar categorias no select ─────────────────────────
+async function carregarCategorias() {
+  const res = await fetch(`${API}/categorias?tipo=${tipoAtual}`);
+  const cats = await res.json();
+  const sel = document.getElementById('f-cat');
+  sel.innerHTML = cats.map(c => `<option value="${c.id}">${c.icone} ${c.nome}</option>`).join('');
+}
+
+// ── Salvar transação ───────────────────────────────────────
+async function salvarTransacao() {
+  const descricao    = document.getElementById('f-desc').value.trim();
+  const valor        = parseFloat(document.getElementById('f-valor').value);
+  const categoria_id = document.getElementById('f-cat').value;
+  const data         = document.getElementById('f-data').value;
+  const observacao   = document.getElementById('f-obs').value.trim();
+
+  if (!descricao || !valor || valor <= 0 || !data) {
+    alert('Preencha todos os campos obrigatórios corretamente.');
+    return;
+  }
+
+  const res = await fetch(`${API}/transacoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ descricao, valor, tipo: tipoAtual, categoria_id, data, observacao })
+  });
+
+  if (res.ok) {
+    document.getElementById('f-desc').value  = '';
+    document.getElementById('f-valor').value = '';
+    document.getElementById('f-obs').value   = '';
+    await atualizarTudo();
+  } else {
+    const err = await res.json();
+    alert('Erro: ' + err.erro);
+  }
+}
+
+// ── Deletar transação ──────────────────────────────────────
+async function deletarTransacao(id) {
+  if (!confirm('Remover este lançamento?')) return;
+  await fetch(`${API}/transacoes/${id}`, { method: 'DELETE' });
+  await atualizarTudo();
+}
+
+// ── Atualizar tudo ─────────────────────────────────────────
+async function atualizarTudo() {
+  await Promise.all([carregarResumo(), carregarTransacoes(), carregarGrafico()]);
+}
+
+// ── Resumo (cards) ─────────────────────────────────────────
+async function carregarResumo() {
+  const res = await fetch(`${API}/transacoes/resumo`);
+  const d = await res.json();
+  document.getElementById('c-saldo').textContent = fmt(d.saldo);
+  document.getElementById('c-rec').textContent   = fmt(d.total_receitas);
+  document.getElementById('c-desp').textContent  = fmt(d.total_despesas);
+}
+
+// ── Lista de transações ────────────────────────────────────
+async function carregarTransacoes() {
+  const res = await fetch(`${API}/transacoes`);
+  todasTx = await res.json();
+  renderizarLista();
+}
+
+function filtrarLista(filtro, btn) {
+  filtroAtual = filtro;
+  document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  renderizarLista();
+}
+
+function renderizarLista() {
+  const lista = filtroAtual === 'todos' ? todasTx : todasTx.filter(t => t.tipo === filtroAtual);
+  const el = document.getElementById('lista-tx');
+
+  if (!lista.length) {
+    el.innerHTML = '<div class="vazio">Nenhum lançamento encontrado.</div>';
+    return;
+  }
+
+  el.innerHTML = lista.map(t => {
+    const cls = t.tipo === 'receita' ? 'r' : 'd';
+    const sinal = t.tipo === 'receita' ? '+' : '-';
+    const partes = t.data.split('T')[0].split('-');
+    const dataFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return `
+      <div class="tx">
+        <div class="tx-esq">
+          <div class="tx-icone ${cls}">${t.categoria_icone || '📦'}</div>
+          <div>
+            <div class="tx-desc">${t.descricao}</div>
+            <div class="tx-cat">${t.categoria_nome}</div>
+          </div>
+        </div>
+        <div class="tx-dir">
+          <div class="tx-val ${cls}">${sinal}${fmt(t.valor)}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="tx-data">${dataFmt}</span>
+            <button class="btn-del" onclick="deletarTransacao(${t.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Gráfico mensal ─────────────────────────────────────────
+async function carregarGrafico() {
+  const res = await fetch(`${API}/transacoes/mensal`);
+  const dados = await res.json();
+
+  const labels = dados.map(d => meses[d.mes - 1].slice(0, 3) + '/' + String(d.ano).slice(2));
+  const receitas = dados.map(d => parseFloat(d.receitas));
+  const despesas = dados.map(d => parseFloat(d.despesas));
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('grafico'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Receitas', data: receitas, backgroundColor: '#1D9E75', borderRadius: 4, borderSkipped: false },
+        { label: 'Despesas', data: despesas, backgroundColor: '#D85A30', borderRadius: 4, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: {
+            font: { size: 11 },
+            callback: v => 'R$' + Number(v).toLocaleString('pt-BR')
+          }
+        }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
