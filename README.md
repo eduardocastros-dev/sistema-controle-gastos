@@ -976,8 +976,8 @@ Este projeto foi desenvolvido para fins educacionais como trabalho acadêmico.
 
 **Eduardo Castro**
 
-- GitHub: [@seu-usuario](https://github.com/seu-usuario)
-- Email: eduardo@email.com
+- GitHub: https://github.com/eduardocastros-dev
+- Email: eduardocsousa.dev@gmail.com
 
 ---
 
@@ -986,7 +986,6 @@ Este projeto foi desenvolvido para fins educacionais como trabalho acadêmico.
 - Professor orientador
 - Comunidade Node.js
 - Documentação do MySQL
-- Colegas de turma
 
 ---
 
@@ -996,7 +995,6 @@ Se encontrar algum problema ou tiver dúvidas:
 
 1. Verifique a seção [Solução de Problemas](#-solução-de-problemas)
 2. Consulte a documentação das tecnologias utilizadas
-3. Abra uma issue no GitHub
 
 ---
 
