@@ -981,14 +981,6 @@ Este projeto foi desenvolvido para fins educacionais como trabalho acadêmico.
 
 ---
 
-## 🙏 Agradecimentos
-
-- Professor orientador
-- Comunidade Node.js
-- Documentação do MySQL
-
----
-
 ## 📞 Suporte
 
 Se encontrar algum problema ou tiver dúvidas:
