@@ -148,3 +148,9 @@ SELECT
     'transacoes' AS tabela,
     COUNT(*) AS total
 FROM transacoes;
+
+
+-- TESTE QUE VEIO DO FRONTEND
+SELECT * FROM transacoes 
+ORDER BY id DESC 
+LIMIT 1;
